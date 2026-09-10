@@ -18,18 +18,16 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Build iOS App for Physical Hardware
-        run: flutter build ios --release --no-codesign
+      - name: Build Unsigned IPA for Physical Hardware
+        run: flutter build ipa --release --no-codesign
 
-      - name: Package Payload into Valid IPA
+      - name: Move and Rename IPA Artifact
         run: |
-          mkdir -p ipa_out/Payload
-          cp -R build/ios/iphoneos/Runner.app ipa_out/Payload/
-          cd ipa_out
-          zip -r -9 IQ-Mart.ipa Payload
+          mkdir -p final_ipa
+          cp build/ios/ipa/*.ipa final_ipa/IQ-Mart.ipa
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: IQ-Mart-IPA
-          path: ipa_out/IQ-Mart.ipa
+          path: final_ipa/IQ-Mart.ipa

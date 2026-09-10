@@ -23,13 +23,13 @@ jobs:
 
       - name: Package Payload into Valid IPA
         run: |
-          mkdir -p build/ios/ipa_build/Payload
-          cp -R build/ios/iphoneos/Runner.app build/ios/ipa_build/Payload/
-          cd build/ios/ipa_build
-          zip -r IQ-Mart.ipa Payload
+          mkdir -p ipa_out/Payload
+          cp -R build/ios/iphoneos/Runner.app ipa_out/Payload/
+          cd ipa_out
+          zip -r -9 IQ-Mart.ipa Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: IQ-Mart-IPA
-          path: build/ios/ipa_build/IQ-Mart.ipa
+          path: ipa_out/IQ-Mart.ipa

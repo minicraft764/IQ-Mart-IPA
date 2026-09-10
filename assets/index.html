@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <link rel="preload" as="image" href="https://phgldyvshihyzimbwxci.supabase.co/storage/v1/object/public/products/icon.svg">
     
     <link rel="preconnect" href="https://encrypted-tbn0.gstatic.com">
@@ -41,6 +41,9 @@
             height: 0 !important;
         }
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        html, body { touch-action: manipulation; }
+        /* Prevent pinch / pinch-zoom gestures (native app feel) */
+        body { overscroll-behavior: contain; }
         html[dir="rtl"] body { font-family: 'Cairo', sans-serif; }
         .glass { background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); }
         .fade-in { animation: fadeIn 0.3s ease-out; }
@@ -155,7 +158,6 @@
             -webkit-user-select: none !important;
             user-select: none !important;
             -webkit-user-drag: none !important;
-            user-drag: none;
             pointer-events: auto;
         }
 
@@ -176,6 +178,21 @@
 
 </head>
 <body class="text-gray-900 transition-colors duration-300">
+    <script>
+        (function() {
+            window.__disablePinchZoom = true;
+            function block(e) { e.preventDefault(); }
+            document.addEventListener('gesturestart', block);
+            document.addEventListener('gesturechange', block);
+            document.addEventListener('gestureend', block);
+            document.addEventListener('touchstart', function (e) {
+                if (e.targetTouches.length > 1) block(e);
+            }, { passive: false });
+            document.addEventListener('touchmove', function (e) {
+                if (e.targetTouches.length > 1) block(e);
+            }, { passive: false });
+        })();
+    </script>
 
     <div id="app-container" class="min-h-screen flex flex-col  w-full  bg-white relative">
         

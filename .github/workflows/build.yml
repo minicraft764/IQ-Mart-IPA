@@ -18,12 +18,6 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Install CocoaPods
-        run: |
-          cd ios
-          pod repo update
-          pod install
-
       - name: Build IQ Mart iOS App
         run: flutter build ios --release --no-codesign
 

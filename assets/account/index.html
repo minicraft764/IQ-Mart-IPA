@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no" />
     <title>IQ Mart</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -53,6 +53,7 @@
         -ms-user-select: none !important;
         user-select: none !important;
         -webkit-touch-callout: none !important;
+        touch-action: manipulation;
       }
 
       img, svg, picture, video {
@@ -584,7 +585,22 @@
     <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
 </head>
   <body>
-    
+    <script>
+      (function() {
+        window.__disablePinchZoom = true;
+        function block(e) { e.preventDefault(); }
+        document.addEventListener('gesturestart', block);
+        document.addEventListener('gesturechange', block);
+        document.addEventListener('gestureend', block);
+        document.addEventListener('touchstart', function (e) {
+          if (e.targetTouches.length > 1) block(e);
+        }, { passive: false });
+        document.addEventListener('touchmove', function (e) {
+          if (e.targetTouches.length > 1) block(e);
+        }, { passive: false });
+      })();
+    </script>
+
     <a href="../index.html" class="back-btn">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       <span data-tr="Back to Store">Back to Store</span>

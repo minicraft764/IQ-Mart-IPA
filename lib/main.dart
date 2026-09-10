@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -45,17 +44,36 @@ class _WebViewScreenState extends State<WebViewScreen> {
   static const MethodChannel _notificationChannel =
       MethodChannel('com.example.ecommerce/notifications');
 
-  HttpServer? _server;
-  int? _serverPort;
   late final WebViewController _controller;
   bool _isLoading = true;
   String? _initError;
+
+  static const String _pinchZoomBlockerJs = '''
+    (function() {
+      try {
+        var meta = document.querySelector('meta[name="viewport"]');
+        if (meta) meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no');
+        else {
+          var m = document.createElement('meta');
+          m.name = 'viewport';
+          m.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no';
+          document.head.appendChild(m);
+        }
+        function block(e){ e.preventDefault(); }
+        document.addEventListener('gesturestart', block);
+        document.addEventListener('gesturechange', block);
+        document.addEventListener('gestureend', block);
+        document.addEventListener('touchstart', function (e) { if (e.targetTouches.length > 1) block(e); }, { passive: false });
+        document.addEventListener('touchmove', function (e) { if (e.targetTouches.length > 1) block(e); }, { passive: false });
+      } catch (e) {}
+    })();
+  ''';
 
   @override
   void initState() {
     super.initState();
     _setupMethodChannel();
-    _startLocalServerAndInitWebView();
+    _initWebView();
   }
 
   void _setupMethodChannel() {
@@ -90,84 +108,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
     ''');
   }
 
-  Future<void> _startLocalServerAndInitWebView() async {
+  Future<void> _initWebView() async {
     try {
-      // 1. Start local HTTP server on loopback (localhost)
-      try {
-        _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 8888);
-      } catch (_) {
-        _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      }
-      _serverPort = _server!.port;
-
-      _server!.listen((HttpRequest request) async {
-        try {
-          var rawPath = request.uri.path;
-
-          // Route mapping
-          String assetPath;
-          if (rawPath == '/' || rawPath.isEmpty || rawPath == '/index.html') {
-            assetPath = 'assets/index.html';
-          } else if (rawPath == '/account' ||
-              rawPath == '/account/' ||
-              rawPath == '/account/index.html') {
-            assetPath = 'assets/account/index.html';
-          } else if (rawPath.startsWith('/assets/')) {
-            assetPath = rawPath.substring(1);
-          } else {
-            assetPath =
-                'assets${rawPath.startsWith('/') ? rawPath : '/$rawPath'}';
-          }
-
-          // Determine MIME Content-Type
-          String contentType = 'text/html; charset=utf-8';
-          final lower = assetPath.toLowerCase();
-          if (lower.endsWith('.js')) {
-            contentType = 'application/javascript; charset=utf-8';
-          } else if (lower.endsWith('.css')) {
-            contentType = 'text/css; charset=utf-8';
-          } else if (lower.endsWith('.png')) {
-            contentType = 'image/png';
-          } else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
-            contentType = 'image/jpeg';
-          } else if (lower.endsWith('.ico')) {
-            contentType = 'image/x-icon';
-          } else if (lower.endsWith('.svg')) {
-            contentType = 'image/svg+xml';
-          } else if (lower.endsWith('.json')) {
-            contentType = 'application/json; charset=utf-8';
-          } else if (lower.endsWith('.woff2')) {
-            contentType = 'font/woff2';
-          } else if (lower.endsWith('.woff')) {
-            contentType = 'font/woff';
-          } else if (lower.endsWith('.ttf')) {
-            contentType = 'font/ttf';
-          }
-
-          try {
-            final byteData = await rootBundle.load(assetPath);
-            request.response.headers.set('Content-Type', contentType);
-            request.response.headers.set('Access-Control-Allow-Origin', '*');
-            request.response.headers.set('Cache-Control', 'no-cache');
-            request.response.add(byteData.buffer.asUint8List(
-              byteData.offsetInBytes,
-              byteData.lengthInBytes,
-            ));
-            await request.response.close();
-          } catch (_) {
-            request.response.statusCode = HttpStatus.notFound;
-            request.response.write('Not found: $assetPath');
-            await request.response.close();
-          }
-        } catch (_) {
-          try {
-            request.response.statusCode = HttpStatus.internalServerError;
-            await request.response.close();
-          } catch (_) {}
-        }
-      });
-
-      // 2. Initialize WebViewController pointing to localhost
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(Colors.white)
@@ -177,7 +119,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
             try {
               final data = jsonDecode(msg.message);
               if (data['type'] == 'SHOW_NOTIFICATION') {
-                // Disabled: All notifications are broadcasted through Firebase Cloud Messaging (FCM)
                 debugPrint('NativeNotification: ignoring web local notification');
               } else if (data['type'] == 'SET_LANGUAGE') {
                 final lang = data['lang'] as String? ?? 'en';
@@ -268,6 +209,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 _isLoading = false;
               });
               try {
+                _controller.runJavaScript(_pinchZoomBlockerJs);
+              } catch (_) {}
+              try {
                 final pendingProdId = await _notificationChannel
                     .invokeMethod<String>('getPendingProduct');
                 if (pendingProdId != null && pendingProdId.isNotEmpty) {
@@ -280,8 +224,14 @@ class _WebViewScreenState extends State<WebViewScreen> {
             },
             onNavigationRequest: (NavigationRequest request) {
               final url = request.url;
-              if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                return NavigationDecision.prevent;
+              if (url.startsWith('http://') || url.startsWith('https://')) {
+                return NavigationDecision.navigate;
+              }
+              if (url.startsWith('file://') || url.startsWith('data:') || url.startsWith('about:')) {
+                return NavigationDecision.navigate;
+              }
+              if (url.startsWith('flutter://')) {
+                return NavigationDecision.navigate;
               }
               return NavigationDecision.navigate;
             },
@@ -301,7 +251,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         );
       }
 
-      await _controller.loadRequest(Uri.parse('http://localhost:$_serverPort/'));
+      await _controller.loadFlutterAsset('assets/index.html');
 
       if (mounted) setState(() {});
     } catch (e) {
@@ -314,7 +264,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   @override
   void dispose() {
-    _server?.close(force: true);
     super.dispose();
   }
 
@@ -325,16 +274,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-            child: Text('Error starting local server: $_initError'),
+            child: Text('Error loading store: $_initError'),
           ),
-        ),
-      );
-    }
-
-    if (_serverPort == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
         ),
       );
     }

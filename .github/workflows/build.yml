@@ -18,7 +18,7 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Build iOS App for Physical Hardware
+- name: Build iOS App for Physical Hardware
         run: flutter build ios --release --no-codesign
 
       - name: Package Payload into Valid IPA

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "322555923185",
+    "project_id": "iq-mart-sa",
+    "storage_bucket": "iq-mart-sa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:322555923185:android:388c80f9e2879e5893f750",
+        "android_client_info": {
+          "package_name": "scar.iqmart.sa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTxXUqXtQIvxLlPZkpDcANKZ4otOf66sA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-ios:
-    name: 🎉 Build IQ Mart iOS App
+    name: 🎉 Build IQ Mart iOS Simulator App
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,18 +18,16 @@ jobs:
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Build IQ Mart iOS App
-        run: flutter build ios --release --no-codesign
+      - name: Build iOS Simulator App
+        run: flutter build ios --simulator --release
 
-      - name: Package IPA
+      - name: Package Simulator App (.zip)
         run: |
-          cd build/ios/iphoneos
-          mkdir Payload
-          cp -r Runner.app Payload/
-          zip -qq -r -9 IQ-Mart.ipa Payload
+          cd build/ios/iphonesimulator
+          zip -qq -r -9 IQ-Mart-Simulator.zip Runner.app
 
-      - name: Upload IPA Artifact
+      - name: Upload Simulator Build
         uses: actions/upload-artifact@v4
         with:
-          name: IQ-Mart-IPA
-          path: build/ios/iphoneos/IQ-Mart.ipa
+          name: IQ-Mart-Appetize-Build
+          path: build/ios/iphonesimulator/IQ-Mart-Simulator.zip
